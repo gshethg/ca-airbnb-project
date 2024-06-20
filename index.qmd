@@ -1,0 +1,62 @@
+---
+title: "AirBnB Density in California"
+author: "Gitanjali Sheth"
+format: html
+execute: 
+  echo: false
+---
+
+```{r}
+library(tidyverse)
+library(leaflet)
+library(dplyr)
+```
+
+```{r}
+airbnb_data <- read.csv("data/California_airbnb.csv")
+```
+
+```{r}
+# Ensure the latitude and longitude columns are numeric
+airbnb_data$latitude <- as.numeric(airbnb_data$latitude)
+airbnb_data$longitude <- as.numeric(airbnb_data$longitude)
+
+# Remove rows with missing latitude or longitude
+airbnb_data <- airbnb_data %>% filter(!is.na(latitude) & !is.na(longitude))
+
+# Major cities coordinates for annotation
+major_cities <- data.frame(
+  city = c("Los Angeles", "San Francisco", "San Diego", "Sacramento", "Santa Barbara"),
+  lat = c(34.0522, 37.7749, 32.7157, 38.5816, 34.4208),
+  lon = c(-118.2437, -122.4194, -117.1611, -121.4944, -119.6982)
+)
+
+# Create an interactive map with leaflet
+leaflet(airbnb_data) %>%
+  addProviderTiles(providers$Stamen.TerrainBackground) %>%
+  addCircles(
+    lng = ~longitude,
+    lat = ~latitude,
+    weight = 1,
+    radius = ~sqrt(price) * 30,  # Adjust radius as needed
+    popup = ~paste0("Price: $", price, "<br>City: ", City),
+    fillColor = "blue",
+    fillOpacity = 0.5,
+    color = NULL
+  ) %>%
+  addMarkers(
+    data = major_cities,
+    lng = ~lon,
+    lat = ~lat,
+    popup = ~city,
+    label = ~city,
+    labelOptions = labelOptions(noHide = TRUE, direction = "top", textOnly = TRUE)
+  ) %>%
+  addLegend(
+    "bottomright",
+    pal = colorNumeric("viridis", domain = airbnb_data$price),
+    values = ~price,
+    title = "Price",
+    opacity = 1
+  )
+```
