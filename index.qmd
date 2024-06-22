@@ -7,56 +7,68 @@ execute:
 ---
 
 ```{r}
+#| message: false
+#| label: LoadLibrabies
+
 library(tidyverse)
 library(leaflet)
 library(dplyr)
-```
+library(ggrepel)
 
+```
 ```{r}
+#| label: LoadData
+
 airbnb_data <- read.csv("data/California_airbnb.csv")
-```
-
-```{r}
 # Ensure the latitude and longitude columns are numeric
 airbnb_data$latitude <- as.numeric(airbnb_data$latitude)
 airbnb_data$longitude <- as.numeric(airbnb_data$longitude)
 
 # Remove rows with missing latitude or longitude
 airbnb_data <- airbnb_data %>% filter(!is.na(latitude) & !is.na(longitude))
+airbnb_data_trim <- head(airbnb_data, 1000)
+```
 
-# Major cities coordinates for annotation
-major_cities <- data.frame(
-  city = c("Los Angeles", "San Francisco", "San Diego", "Sacramento", "Santa Barbara"),
-  lat = c(34.0522, 37.7749, 32.7157, 38.5816, 34.4208),
-  lon = c(-118.2437, -122.4194, -117.1611, -121.4944, -119.6982)
+```{r}
+#| label: PlotData
+
+#Plot stats
+airbnb_summarized <- summarize(airbnb_data, count = n(), .by = c(City, room_type))
+airbnb_summarized <- airbnb_summarized %>%
+  group_by(City) %>%
+  mutate(percentage = count / sum(count) * 100) %>%
+  ungroup()
+
+#plot % distribution of room types by city
+ggplot(airbnb_summarized, aes(x = City, y = percentage, fill = room_type)) +
+  geom_bar(stat = "identity") +
+  geom_text( label = "",
+            position = position_stack(vjust = 0.5), size = 3) +
+  labs(title = "Percentage of Airbnb Listings by Room Type and City",
+       x = "Cities",
+       y = "Percentage of Listings",
+       fill = "Room Type") +
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        plot.title = element_text(hjust = 0.5, size = rel(1.5)))
+
+#plot % distribution by city
+
+ggplot(airbnb_summarized, aes(x = City, y = room_type, fill = count)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient(low = "white", high = "blue") +
+  labs(title = "Heatmap of Airbnb Listings by City and Room Type",
+       x = "City", y = "Room Type", fill = "Count of Listings") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+# marker
+m <- leaflet(airbnb_data_trim) %>% addTiles()
+rand_lng <- function(n = 10) rnorm(n, airbnb_data_trim$longitude, .01)
+rand_lat <- function(n = 10) rnorm(n, airbnb_data_trim$latitude, .01)
+m %>% addMarkers(
+  rand_lng(), rand_lat(), popup = paste("price: ", airbnb_data_trim$price)
 )
 
-# Create an interactive map with leaflet
-leaflet(airbnb_data) %>%
-  addProviderTiles(providers$Stamen.TerrainBackground) %>%
-  addCircles(
-    lng = ~longitude,
-    lat = ~latitude,
-    weight = 1,
-    radius = ~sqrt(price) * 30,  # Adjust radius as needed
-    popup = ~paste0("Price: $", price, "<br>City: ", City),
-    fillColor = "blue",
-    fillOpacity = 0.5,
-    color = NULL
-  ) %>%
-  addMarkers(
-    data = major_cities,
-    lng = ~lon,
-    lat = ~lat,
-    popup = ~city,
-    label = ~city,
-    labelOptions = labelOptions(noHide = TRUE, direction = "top", textOnly = TRUE)
-  ) %>%
-  addLegend(
-    "bottomright",
-    pal = colorNumeric("viridis", domain = airbnb_data$price),
-    values = ~price,
-    title = "Price",
-    opacity = 1
-  )
 ```
