@@ -1,5 +1,5 @@
 ---
-title: "AirBnB Density in California"
+title: "Key AirBnB Stats"
 author: "Gitanjali Sheth"
 format: html
 execute: 
@@ -11,28 +11,17 @@ execute:
 #| label: LoadLibrabies
 
 library(tidyverse)
-library(leaflet)
 library(dplyr)
-library(ggrepel)
-library(leaflet.extras)
-library(htmlwidgets)
-
-
 ```
 ```{r}
 #| label: LoadData
 
 airbnb_data <- read.csv("data/California_airbnb.csv")
-# Ensure the latitude and longitude columns are numeric
-airbnb_data$latitude <- as.numeric(airbnb_data$latitude)
-airbnb_data$longitude <- as.numeric(airbnb_data$longitude)
 
-# Remove rows with missing latitude or longitude
-airbnb_data <- airbnb_data %>% filter(!is.na(latitude) & !is.na(longitude))
-#airbnb_data_trim <- head(airbnb_data, 1000)
-airbnb_data_trim <- airbnb_data |> select(price, City, latitude, longitude, room_type) |> filter (price>0) |> group_by(City) %>%
-  arrange(desc(price)) %>%
-  slice_head(n = 20) %>%
+airbnb_summarized <- summarize(airbnb_data, count = n(), .by = c(City, room_type))
+airbnb_summarized <- airbnb_summarized %>%
+  group_by(City) %>%
+  mutate(percentage = count / sum(count) * 100) %>%
   ungroup()
 ```
 
@@ -40,11 +29,7 @@ airbnb_data_trim <- airbnb_data |> select(price, City, latitude, longitude, room
 #| label: PlotData
 
 #Plot stats
-airbnb_summarized <- summarize(airbnb_data, count = n(), .by = c(City, room_type))
-airbnb_summarized <- airbnb_summarized %>%
-  group_by(City) %>%
-  mutate(percentage = count / sum(count) * 100) %>%
-  ungroup()
+
 
 #plot % distribution of room types by city
 ggplot(airbnb_summarized, aes(x = City, y = percentage, fill = room_type)) +
@@ -52,6 +37,7 @@ ggplot(airbnb_summarized, aes(x = City, y = percentage, fill = room_type)) +
   geom_text( label = "",
             position = position_stack(vjust = 0.5), size = 3) +
   labs(title = "Percentage of Airbnb Listings by Room Type and City",
+       subtitle = "There are more homes than other room types on AirBnb regardless of the city",
        x = "Cities",
        y = "Percentage of Listings",
        fill = "Room Type") +
@@ -66,19 +52,11 @@ ggplot(airbnb_summarized, aes(x = City, y = room_type, fill = count)) +
   geom_tile(color = "white") +
   scale_fill_gradient(low = "white", high = "blue") +
   labs(title = "Heatmap of Airbnb Listings by City and Room Type",
+       subtitle = "Los Angeles has the most AirBnb listings in CA",
        x = "City", y = "Room Type", fill = "Count of Listings") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
         plot.title = element_text(hjust = 0.5, size = rel(1.5)))
-  
-#Searchable map of Airbnb Properties by City
-m <- leaflet(airbnb_data_trim) %>% addTiles()
-m %>% addMarkers(
-  airbnb_data_trim$longitude, airbnb_data_trim$latitude, popup = paste("price: ", airbnb_data_trim$price)
-) %>% addSearchOSM(options = searchOptions(
-    position = 'topleft',
-    textPlaceholder = 'Search by city...', zoom = 12
-  ))
 ```
 
 

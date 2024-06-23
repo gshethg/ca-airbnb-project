@@ -1,0 +1,50 @@
+---
+title: "Search Map for AirBnB Listings by City"
+author: "Gitanjali Sheth"
+execute: 
+  echo: false
+---
+
+```{r}
+#| label: loadlibraries
+#| message: false
+
+library(tidyverse)
+library(leaflet)
+library(dplyr)
+library(ggrepel)
+library(leaflet.extras)
+```
+
+```{r}
+#| label: LoadData
+
+airbnb_data <- read.csv("data/California_airbnb.csv")
+# Ensure the latitude and longitude columns are numeric
+airbnb_data$latitude <- as.numeric(airbnb_data$latitude)
+airbnb_data$longitude <- as.numeric(airbnb_data$longitude)
+
+# Remove rows with missing latitude or longitude
+airbnb_data <- airbnb_data %>% filter(!is.na(latitude) & !is.na(longitude))
+
+#reduce the data to the top 20 most expensive listings per city
+airbnb_data_trim <- airbnb_data |> select(price, City, latitude, longitude, room_type) |> filter (price>0) |> group_by(City) %>%
+  arrange(desc(price)) %>%
+  slice_head(n = 20) %>%
+  ungroup()
+```
+
+
+```{r}
+#| label: PlotData
+
+#Searchable map of Airbnb Properties by City
+m <- leaflet(airbnb_data_trim) %>% addTiles()
+m %>% addMarkers(
+  airbnb_data_trim$longitude, airbnb_data_trim$latitude, popup = paste("price: ", airbnb_data_trim$price)
+) %>% addSearchOSM(options = searchOptions(
+    position = 'topleft',
+    textPlaceholder = 'Search by city...', zoom = 12
+  ))
+```
+
