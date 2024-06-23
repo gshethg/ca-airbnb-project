@@ -6,6 +6,14 @@ execute:
   echo: false
 ---
 
+California has many family friendly attractions which creates a huge demand for affordable and spacious accommodations for a family of 4 or more. 
+
+To analyze the density of family friendly accomodations, I used the [AirBnb dataset from Kaggle]( https://www.kaggle.com/datasets/setseries/airbnb-listings-in-california?resource=download&select=California_airbnb.csv)
+
+The data is sourced from AirBnb and provides key information for listings in California such as price, lat, long, accomodation type, city, availability and the amenities provided. Some of the listings had missing pricing information  that I had to remove from my analysis. Additionally, due to lack of computational resources, I had to further trim the dataset to only pick the top 50 properties per city for mapping purposes. However, the statistical analysis was done on the entire dataset.
+
+Los Angeles and San Diego have the most family friendly accomodations listed to support the tourist demands.
+
 ```{r}
 #| message: false
 #| label: LoadLibrabies
