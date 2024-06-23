@@ -14,6 +14,9 @@ library(tidyverse)
 library(leaflet)
 library(dplyr)
 library(ggrepel)
+library(leaflet.extras)
+library(htmlwidgets)
+
 
 ```
 ```{r}
@@ -26,7 +29,11 @@ airbnb_data$longitude <- as.numeric(airbnb_data$longitude)
 
 # Remove rows with missing latitude or longitude
 airbnb_data <- airbnb_data %>% filter(!is.na(latitude) & !is.na(longitude))
-airbnb_data_trim <- head(airbnb_data, 1000)
+#airbnb_data_trim <- head(airbnb_data, 1000)
+airbnb_data_trim <- airbnb_data |> select(price, City, latitude, longitude, room_type) |> filter (price>0) |> group_by(City) %>%
+  arrange(desc(price)) %>%
+  slice_head(n = 20) %>%
+  ungroup()
 ```
 
 ```{r}
@@ -53,7 +60,7 @@ ggplot(airbnb_summarized, aes(x = City, y = percentage, fill = room_type)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
         plot.title = element_text(hjust = 0.5, size = rel(1.5)))
 
-#plot % distribution by city
+#Heatmap of Number of room types by city
 
 ggplot(airbnb_summarized, aes(x = City, y = room_type, fill = count)) +
   geom_tile(color = "white") +
@@ -61,14 +68,17 @@ ggplot(airbnb_summarized, aes(x = City, y = room_type, fill = count)) +
   labs(title = "Heatmap of Airbnb Listings by City and Room Type",
        x = "City", y = "Room Type", fill = "Count of Listings") +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        plot.title = element_text(hjust = 0.5, size = rel(1.5)))
   
-# marker
+#Searchable map of Airbnb Properties by City
 m <- leaflet(airbnb_data_trim) %>% addTiles()
-rand_lng <- function(n = 10) rnorm(n, airbnb_data_trim$longitude, .01)
-rand_lat <- function(n = 10) rnorm(n, airbnb_data_trim$latitude, .01)
 m %>% addMarkers(
-  rand_lng(), rand_lat(), popup = paste("price: ", airbnb_data_trim$price)
-)
-
+  airbnb_data_trim$longitude, airbnb_data_trim$latitude, popup = paste("price: ", airbnb_data_trim$price)
+) %>% addSearchOSM(options = searchOptions(
+    position = 'topleft',
+    textPlaceholder = 'Search by city...', zoom = 12
+  ))
 ```
+
+
